@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>預購明細</title>
+<style>
+body { background:#0d0d0d; font-family:'Arial'; color:white; padding:25px; }
+.glass { backdrop-filter: blur(14px); background: rgba(255,255,255,0.15); border-radius:20px; padding:20px; border:1px solid rgba(255,255,255,0.25); box-shadow:0 4px 30px rgba(0,0,0,0.3); }
+table { width:100%; border-collapse:collapse; font-size:15px; }
+th, td { padding:10px; border-bottom:1px solid rgba(255,255,255,0.2); }
+th { cursor:pointer; user-select:none; }
+#search { width:100%; padding:12px; margin-bottom:20px; border-radius:10px; border:none; background:rgba(255,255,255,0.2); color:white; backdrop-filter:blur(8px); }
+#back { cursor:pointer; padding:10px 18px; margin-bottom:15px; border-radius:10px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); backdrop-filter:blur(8px); color:white; }
+</style>
+</head>
+<body>
+
+<button id="back" onclick="window.location.href='index.html'">← 返回儀表板</button>
+
+<h1>預購明細</h1>
+<input id="search" placeholder="搜尋姓名 / 餐點 / 運送位置">
+
+<div class="glass">
+    <table id="table">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">運送位置</th>
+                <th onclick="sortTable(1)">姓名</th>
+                <th onclick="sortTable(2)">餐點</th>
+                <th onclick="sortTable(3)">份數</th>
+                <th onclick="sortTable(4)">金額</th>
+                <th onclick="sortTable(5)">收款</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+
+<script>
+const url = 'https://api.sheety.co/ae4e08eb568eb1ace722b0a85d7fa564/806園遊會預購名單/預購';
+let tableData = [];
+
+function fetchData() {
+    fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        tableData = data.預購.map(r=>({
+            location: r["運送位置"]||"",
+            name: r["姓名"]||"",
+            item: r["餐點"]||"",
+            qty: r["份數"]||0,
+            price: r["金額"]||0,
+            paid: r["收款"]||"否"
+        }));
+        rebuildTable(tableData);
+    })
+    .catch(err => console.error("資料讀取失敗", err));
+}
+
+function rebuildTable(data){
+    const tb = document.getElementById("tbody");
+    tb.innerHTML="";
+    data.forEach(r=>{
+        tb.innerHTML += `
+            <tr>
+                <td>${r.location}</td>
+                <td>${r.name}</td>
+                <td>${r.item}</td>
+                <td>${r.qty}</td>
+                <td>${r.price}</td>
+                <td>${r.paid}</td>
+            </tr>
+        `;
+    });
+}
+
+document.getElementById("search").oninput=function(){
+    const kw = this.value.toLowerCase();
+    const filtered = tableData.filter(r =>
+        r.location.toLowerCase().includes(kw) ||
+        r.name.toLowerCase().includes(kw) ||
+        r.item.toLowerCase().includes(kw)
+    );
+    rebuildTable(filtered);
+};
+
+function sortTable(col){
+    tableData.sort((a,b)=>{
+        const A=Object.values(a)[col];
+        const B=Object.values(b)[col];
+        return (A>B?1:-1);
+    });
+    rebuildTable(tableData);
+}
+
+document.getElementById("back").onclick = () => location.href='index.html';
+fetchData();
+setInterval(fetchData, 10000); // 每 10 秒自動刷新
+</script>
+</body>
+</html>

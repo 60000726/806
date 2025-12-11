@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>預購儀表板</title>
+<style>
+body { font-family: Arial; background:#0d0d0d; color:white; padding:25px; }
+.glass { backdrop-filter: blur(14px); background:rgba(255,255,255,0.15); border-radius:22px; padding:25px; margin-bottom:22px; border:1px solid rgba(255,255,255,0.3); box-shadow:0 4px 30px rgba(0,0,0,0.3); }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:25px; }
+.title { font-size:22px; margin-bottom:10px; }
+.big-number { font-size:56px; font-weight:bold; }
+#update-bar { display:flex; align-items:center; gap:10px; margin-bottom:20px; font-size:15px; opacity:0.9; }
+#refresh { cursor:pointer; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); backdrop-filter:blur(8px); color:white; }
+.floating-btn { position:fixed; right:25px; bottom:25px; background:rgba(255,255,255,0.25); backdrop-filter:blur(10px); border-radius:22px; padding:20px 32px; font-size:20px; cursor:pointer; border:1px solid rgba(255,255,255,0.4); box-shadow:0 0 12px rgba(255,255,255,0.25); }
+
+/* 卡片閃爍動畫 */
+@keyframes flash {
+    0% { background-color: rgba(255,255,255,0.3); }
+    50% { background-color: rgba(255,255,255,0.6); }
+    100% { background-color: rgba(255,255,255,0.15); }
+}
+.flash { animation: flash 0.5s ease; }
+</style>
+</head>
+<body>
+
+<div id="update-bar">
+    <span id="update-time">資料讀取中...</span>
+    <button id="refresh">重新整理 ↻</button>
+</div>
+
+<h1>預購儀表板</h1>
+
+<div class="grid">
+    <div class="glass">
+        <div class="title">總人數</div>
+        <div class="big-number" id="people-count">--</div>
+    </div>
+    <div class="glass">
+        <div class="title">總份數</div>
+        <div class="big-number" id="total-qty">--</div>
+    </div>
+    <div class="glass">
+        <div class="title">總金額</div>
+        <div class="big-number" id="total-price">--</div>
+    </div>
+    <div class="glass">
+        <div class="title">運送位置排名</div>
+        <div id="ranking">讀取中...</div>
+    </div>
+</div>
+
+<div class="floating-btn" onclick="window.location.href='detail.html'">
+    查看詳細 ➜
+</div>
+
+<script>
+const url = 'https://api.sheety.co/ae4e08eb568eb1ace722b0a85d7fa564/806園遊會預購名單/預購';
+let previousData = null;
+
+function fetchData() {
+    fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        const rows = data.預購;
+
+        // 比對資料是否有變動
+        const newDataStr = JSON.stringify(rows);
+        if(previousData === newDataStr) return; // 沒變動就不更新
+        previousData = newDataStr;
+
+        let peopleSet = new Set();
+        let totalQty = 0;
+        let totalPrice = 0;
+        let locationCount = {};
+
+        rows.forEach(r => {
+            const location = r["運送位置"] || "";
+            const name = r["姓名"] || "";
+            const qty = Number(r["份數"] || 0);
+            const price = Number(r["金額"] || 0);
+
+            if(name) peopleSet.add(name);
+            totalQty += qty;
+            totalPrice += price;
+
+            if(location) {
+                if(!locationCount[location]) locationCount[location] = 0;
+                locationCount[location] += qty;
+            }
+        });
+
+        const cards = [
+            document.getElementById("people-count"),
+            document.getElementById("total-qty"),
+            document.getElementById("total-price"),
+            document.getElementById("ranking")
+        ];
+
+        document.getElementById("people-count").textContent = peopleSet.size;
+        document.getElementById("total-qty").textContent = totalQty;
+        document.getElementById("total-price").textContent = totalPrice;
+
+        let sorted = Object.entries(locationCount).sort((a,b)=>b[1]-a[1]);
+        let html = sorted.map((x,i)=>`${i+1}. ${x[0]}（${x[1]}份）`).join("<br>");
+        document.getElementById("ranking").innerHTML = html;
+
+        document.getElementById("update-time").textContent = "最後更新：" + new Date().toLocaleString();
+
+        // 只有資料有變動時才閃爍
+        cards.forEach(card => {
+            card.classList.remove("flash");
+            void card.offsetWidth;
+            card.classList.add("flash");
+        });
+    })
+    .catch(err => {
+        document.getElementById("ranking").textContent = "資料讀取失敗";
+        console.error(err);
+    });
+}
+
+document.getElementById("refresh").onclick = fetchData;
+fetchData();
+setInterval(fetchData, 10000); // 每10秒自動刷新
+</script>
+
+</body>
+</html>
