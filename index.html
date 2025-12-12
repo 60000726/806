@@ -70,7 +70,7 @@ body { font-family: Arial; background:#0d0d0d; color:white; padding:25px; }
 </div>
 
 <script>
-const url = 'https://api.sheety.co/ae4e08eb568eb1ace722b0a85d7fa564/806Preorder/orders';
+const url = 'https://api.sheety.co/ae4e08eb568eb1ace722b0a85d7fa564/806園遊會預購名單/預購';
 let previousData = null;
 
 function fetchData() {
@@ -80,7 +80,7 @@ function fetchData() {
         const rows = data.預購;
 
         const newDataStr = JSON.stringify(rows);
-        if(previousData === newDataStr) return;
+        if(previousData === newDataStr) return; // 沒變動就不更新
         previousData = newDataStr;
 
         let peopleSet = new Set();
@@ -137,6 +137,7 @@ function fetchData() {
 
         document.getElementById("update-time").textContent = "最後更新：" + new Date().toLocaleString();
 
+        // 只有資料有變動時才閃爍
         cards.forEach(card => {
             card.classList.remove("flash");
             void card.offsetWidth;
