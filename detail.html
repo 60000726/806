@@ -16,15 +16,22 @@ th { cursor:pointer; user-select:none; }
 </head>
 <body>
 
-<button id="back">← 返回儀表板</button>
+<button id="back" onclick="window.location.href='index.html'">← 返回儀表板</button>
 
 <h1>預購明細</h1>
-<input id="search" placeholder="搜尋姓名 / 餐點 / 單位 / 運送位置 / 班級 / 備註">
+<input id="search" placeholder="搜尋姓名 / 餐點 / 運送位置">
 
 <div class="glass">
     <table id="table">
         <thead>
-            <tr id="header-row"></tr>
+            <tr>
+                <th onclick="sortTable(0)">運送位置</th>
+                <th onclick="sortTable(1)">姓名</th>
+                <th onclick="sortTable(2)">餐點</th>
+                <th onclick="sortTable(3)">份數</th>
+                <th onclick="sortTable(4)">金額</th>
+                <th onclick="sortTable(5)">收款</th>
+            </tr>
         </thead>
         <tbody id="tbody"></tbody>
     </table>
@@ -33,90 +40,63 @@ th { cursor:pointer; user-select:none; }
 <script>
 const url = 'https://api.sheety.co/ae4e08eb568eb1ace722b0a85d7fa564/806園遊會預購名單/預購';
 let tableData = [];
-let columns = [];
 
-// 取得資料並重新整理
 function fetchData() {
     fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            const rows = data.預購;
-
-            // 第一次載入 → 自動依照 API 欄位產生表頭
-            if (columns.length === 0) {
-                columns = Object.keys(rows[0]).filter(c => c !== "id");
-                buildHeader();
-            }
-
-            // 整理成資料表格式
-            tableData = rows.map(r => {
-                let obj = {};
-                columns.forEach(c => obj[c] = r[c] || "");
-                return obj;
-            });
-
-            rebuildTable(tableData);
-        })
-        .catch(err => console.error("資料讀取失敗", err));
+    .then(response => response.json())
+    .then(data => {
+        tableData = data.預購.map(r=>({
+            location: r["運送位置"]||"",
+            name: r["姓名"]||"",
+            item: r["餐點"]||"",
+            qty: r["份數"]||0,
+            price: r["金額"]||0,
+            paid: r["收款"]||"否"
+        }));
+        rebuildTable(tableData);
+    })
+    .catch(err => console.error("資料讀取失敗", err));
 }
 
-// 產生表頭
-function buildHeader() {
-    const headerRow = document.getElementById("header-row");
-    headerRow.innerHTML = "";
-
-    columns.forEach((col, idx) => {
-        headerRow.innerHTML += `<th onclick="sortTable(${idx})">${col}</th>`;
-    });
-}
-
-// 產生表格內容
-function rebuildTable(data) {
+function rebuildTable(data){
     const tb = document.getElementById("tbody");
-    tb.innerHTML = "";
-
-    data.forEach(row => {
-        let tr = "<tr>";
-        columns.forEach(c => {
-            tr += `<td>${row[c]}</td>`;
-        });
-        tr += "</tr>";
-        tb.innerHTML += tr;
+    tb.innerHTML="";
+    data.forEach(r=>{
+        tb.innerHTML += `
+            <tr>
+                <td>${r.location}</td>
+                <td>${r.name}</td>
+                <td>${r.item}</td>
+                <td>${r.qty}</td>
+                <td>${r.price}</td>
+                <td>${r.paid}</td>
+            </tr>
+        `;
     });
 }
 
-// 搜尋
-document.getElementById("search").oninput = function () {
+document.getElementById("search").oninput=function(){
     const kw = this.value.toLowerCase();
-
     const filtered = tableData.filter(r =>
-        Object.values(r).join(" ").toLowerCase().includes(kw)
+        r.location.toLowerCase().includes(kw) ||
+        r.name.toLowerCase().includes(kw) ||
+        r.item.toLowerCase().includes(kw)
     );
-
     rebuildTable(filtered);
 };
 
-// 排序
-function sortTable(colIndex) {
-    const colName = columns[colIndex];
-
-    tableData.sort((a, b) => {
-        const A = a[colName].toString();
-        const B = b[colName].toString();
-        return A.localeCompare(B, 'zh-Hant');
+function sortTable(col){
+    tableData.sort((a,b)=>{
+        const A=Object.values(a)[col];
+        const B=Object.values(b)[col];
+        return (A>B?1:-1);
     });
-
     rebuildTable(tableData);
 }
 
-document.getElementById("back").onclick = () => location.href = 'index.html';
-
-// 初次抓資料
+document.getElementById("back").onclick = () => location.href='index.html';
 fetchData();
-
-// 每 10 秒自動更新
-setInterval(fetchData, 10000);
+setInterval(fetchData, 10000); // 每 10 秒自動刷新
 </script>
-
 </body>
 </html>
