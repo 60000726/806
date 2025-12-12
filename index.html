@@ -13,6 +13,20 @@ body {
     padding: 25px;
 }
 
+/* 手機版優化 */
+@media (max-width: 600px) {
+    body { padding: 15px; }
+    h1 { font-size: 26px; }
+    .big-number { font-size: 38px !important; }
+    #update-bar { flex-direction: column; align-items: flex-start; }
+    .floating-btn {
+        right: 15px;
+        bottom: 15px;
+        padding: 16px 24px;
+        font-size: 18px;
+    }
+}
+
 /* 玻璃卡片 */
 .glass {
     backdrop-filter: blur(14px);
@@ -24,7 +38,7 @@ body {
     box-shadow: 0 4px 30px rgba(0,0,0,0.3);
 }
 
-/* 格狀排版 */
+/* 格狀排版（手機自動一欄） */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -119,7 +133,7 @@ body {
     </div>
 </div>
 
-<!-- 第二列：炒泡麵 / 紅茶 / 套餐（同一行） -->
+<!-- 第二列：炒泡麵 / 紅茶 / 套餐 -->
 <div class="grid">
     <div class="glass" id="card-noodle">
         <div class="title">炒泡麵總數</div>
@@ -165,7 +179,7 @@ function fetchData() {
             }));
 
             const str = JSON.stringify(raw);
-            if (str === lastData) return;  // 無變動
+            if (str === lastData) return;
             lastData = str;
 
             updateUI(raw);
@@ -198,7 +212,6 @@ function updateUI(data) {
         if (r.item.includes("套餐")) setMeal += r.qty;
     });
 
-    // 更新數字
     document.getElementById("people-count").textContent = people.size;
     document.getElementById("total-qty").textContent = totalQty;
     document.getElementById("total-price").textContent = totalPrice;
@@ -206,16 +219,13 @@ function updateUI(data) {
     document.getElementById("tea-count").textContent = tea;
     document.getElementById("set-count").textContent = setMeal;
 
-    // 排名
     let sorted = Object.entries(locationCount).sort((a,b) => b[1] - a[1]);
     document.getElementById("ranking").innerHTML =
         sorted.map((x,i)=>`${i+1}. ${x[0]}（${x[1]}份）`).join("<br>");
 
-    // 更新時間
     document.getElementById("update-time").textContent =
         "最後更新：" + new Date().toLocaleTimeString();
 
-    // 閃爍動畫
     [
         "card-people", "card-qty", "card-price",
         "card-rank", "card-noodle", "card-tea", "card-set"
@@ -227,10 +237,8 @@ function updateUI(data) {
     });
 }
 
-// 手動刷新按鈕
 document.getElementById("refresh").onclick = fetchData;
 
-// 初始化 + 自動更新
 fetchData();
 setInterval(fetchData, 10000);
 </script>
