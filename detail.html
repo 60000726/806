@@ -15,12 +15,9 @@ th { cursor:pointer; user-select:none; }
 </style>
 </head>
 <body>
-
 <button id="back" onclick="window.location.href='index.html'">← 返回儀表板</button>
-
 <h1>預購明細</h1>
 <input id="search" placeholder="搜尋姓名 / 餐點 / 運送位置">
-
 <div class="glass">
     <table id="table">
         <thead>
@@ -36,11 +33,9 @@ th { cursor:pointer; user-select:none; }
         <tbody id="tbody"></tbody>
     </table>
 </div>
-
 <script>
 const url = 'https://api.sheety.co/ae4e08eb568eb1ace722b0a85d7fa564/806園遊會預購名單/預購';
 let tableData = [];
-
 function fetchData() {
     fetch(url)
     .then(response => response.json())
@@ -57,7 +52,6 @@ function fetchData() {
     })
     .catch(err => console.error("資料讀取失敗", err));
 }
-
 function rebuildTable(data){
     const tb = document.getElementById("tbody");
     tb.innerHTML="";
@@ -74,7 +68,6 @@ function rebuildTable(data){
         `;
     });
 }
-
 document.getElementById("search").oninput=function(){
     const kw = this.value.toLowerCase();
     const filtered = tableData.filter(r =>
@@ -84,7 +77,6 @@ document.getElementById("search").oninput=function(){
     );
     rebuildTable(filtered);
 };
-
 function sortTable(col){
     tableData.sort((a,b)=>{
         const A=Object.values(a)[col];
@@ -93,7 +85,6 @@ function sortTable(col){
     });
     rebuildTable(tableData);
 }
-
 document.getElementById("back").onclick = () => location.href='index.html';
 fetchData();
 setInterval(fetchData, 10000); // 每 10 秒自動刷新
