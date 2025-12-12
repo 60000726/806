@@ -106,35 +106,43 @@ let sortState = { col: null, asc: true };
 
 // --- 抓資料 ---
 function fetchDetailData() {
-    fetch(apiURL)
-        .then(res => res.json()) // ⚠️ 修正: 直接解析 JSON
-        .then(data => {
-            // ⚠️ 修正: 使用 index.html 成功存取的結構 (假設 '預購' 是資料陣列的 key)
-            const rows = data.預購 || []; // 如果不是 '預購'，請檢查實際的 JSON 結構
+    fetch(apiURL)
+        .then(res => res.text()) // 🌟 修正: 以純文字讀取 JSONP
+        .then(txt => {
+            // 🌟 修正: 提取 JSONP 內部的純 JSON 字串
+            const jsonStart = txt.indexOf("{");
+            const jsonEnd = txt.lastIndexOf("}") + 1;
+            const jsonText = txt.substring(jsonStart, jsonEnd);
+            
+            if (!jsonText) throw new Error("無法解析 Google Sheets 資料");
+            
+            const data = JSON.parse(jsonText);
 
-            tableData = rows
-                .map(r => {
-                    // 假設 Google Sheet 的每一行資料的 key 就是標題列
-                    // 根據 th 的順序調整這裡的 key
-                    return [
-                        r["運送位置"] ?? "", 
-                        r["姓名"] ?? "", 
-                        r["餐點"] ?? "", 
-                        r["份數"] ?? "", 
-                        r["金額"] ?? "", 
-                        r["收款"] ?? "", 
-                        r["備註"] ?? "" 
-                    ];
-                })
-                .filter(row => row.some(v => v !== "")); // 過濾空列
+            // 使用 index.html 中成功的結構 (假設 '預購' 是資料陣列的 key)
+            const rows = data.預購 || []; 
 
-            renderTable(tableData);
-        })
-        .catch(err => {
-            console.error("讀取 Google Sheets 失敗:", err);
-            document.getElementById("table-body").innerHTML =
-                `<tr><td colspan="7">讀取失敗</td></tr>`;
-        });
+            tableData = rows
+                .map(r => {
+                    // 欄位名稱應與 Google Sheet 中的標題完全一致
+                    return [
+                        r["運送位置"] ?? "", 
+                        r["姓名"] ?? "", 
+                        r["餐點"] ?? "", 
+                        r["份數"] ?? "", 
+                        r["金額"] ?? "", 
+                        r["收款"] ?? "", 
+                        r["備註"] ?? "" 
+                    ];
+                })
+                .filter(row => row.some(v => v !== "")); // 過濾空列
+
+            renderTable(tableData);
+        })
+        .catch(err => {
+            console.error("讀取 Google Sheets 失敗:", err);
+            document.getElementById("table-body").innerHTML =
+                `<tr><td colspan="7">讀取失敗</td></tr>`;
+        });
 }
 
 // --- 渲染表格 ---
@@ -160,7 +168,7 @@ document.getElementById("search-box").addEventListener("input", function () {
 // --- 排序 ---
 document.querySelectorAll("th").forEach(th => {
     th.addEventListener("click", () => {
-        // ⚠️ 修正: 將 data-col 從字串轉為數字，以便正確存取陣列
+        // 確保欄位索引為數字
         const col = Number(th.dataset.col);
 
         if (sortState.col === col) {
@@ -176,7 +184,8 @@ document.querySelectorAll("th").forEach(th => {
 
             const numX = Number(x);
             const numY = Number(y);
-            const isNumber = !isNaN(numX) && !isNaN(numY) && x !== "" && y !== ""; // 修正: 排除空字串導致的錯誤判斷
+            // 確保只對非空且有效的數字進行數字排序
+            const isNumber = !isNaN(numX) && !isNaN(numY) && x !== "" && y !== ""; 
 
             if (isNumber) {
                 x = numX;
