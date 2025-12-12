@@ -115,20 +115,18 @@ function fetchDetailData() {
 
             tableData = rows
                 .map(r => {
-                    const c = r.c;
-                    if (!c) return null;
-
+                    if (!r.c) return null;
                     return [
-                        c[0]?.v ?? c[0]?.f ?? "", // 運送位置
-                        c[1]?.v ?? c[1]?.f ?? "", // 姓名
-                        c[2]?.v ?? c[2]?.f ?? "", // 餐點
-                        c[3]?.v ?? c[3]?.f ?? "", // 份數
-                        c[4]?.v ?? c[4]?.f ?? "", // 金額
-                        c[5]?.v ?? c[5]?.f ?? "", // 收款
-                        c[6]?.v ?? c[6]?.f ?? ""  // 備註
+                        r.c[0]?.v ?? "", // 運送位置（文字 OK）
+                        r.c[1]?.v ?? "", // 姓名
+                        r.c[2]?.v ?? "", // 餐點
+                        r.c[3]?.v ?? "", // 份數
+                        r.c[4]?.v ?? "", // 金額
+                        r.c[5]?.v ?? "", // 收款
+                        r.c[6]?.v ?? ""  // 備註
                     ];
                 })
-                .filter(row => row && row.some(v => v !== "")); // 過濾空列
+                .filter(row => row && row.some(col => col !== "")); // 過濾空白列
 
             renderTable(tableData);
         })
@@ -175,13 +173,11 @@ document.querySelectorAll("th").forEach(th => {
             let x = a[col];
             let y = b[col];
 
-            const numX = Number(x);
-            const numY = Number(y);
-            const isNumber = !isNaN(numX) && !isNaN(numY);
+            const isNumber = !isNaN(Number(x)) && !isNaN(Number(y));
 
             if (isNumber) {
-                x = numX;
-                y = numY;
+                x = Number(x);
+                y = Number(y);
             } else {
                 x = String(x);
                 y = String(y);
