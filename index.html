@@ -16,9 +16,9 @@ body { font-family: Arial; background:#0d0d0d; color:white; padding:25px; }
 
 /* 卡片閃爍動畫 */
 @keyframes flash {
-    0% { background-color: rgba(255,255,255,0.3); }
-    50% { background-color: rgba(255,255,255,0.6); }
-    100% { background-color: rgba(255,255,255,0.15); }
+    0% { background-color: rgba(255,255,255,0.3); }
+    50% { background-color: rgba(255,255,255,0.6); }
+    100% { background-color: rgba(255,255,255,0.15); }
 }
 .flash { animation: flash 0.5s ease; }
 </style>
@@ -26,47 +26,46 @@ body { font-family: Arial; background:#0d0d0d; color:white; padding:25px; }
 <body>
 
 <div id="update-bar">
-    <span id="update-time">資料讀取中...</span>
-    <button id="refresh">重新整理 ↻</button>
+    <span id="update-time">資料讀取中...</span>
+    <button id="refresh">重新整理 ↻</button>
 </div>
 
 <h1>806園遊會預購名單</h1>
 
 <div class="grid">
-    <div class="glass">
-        <div class="title">預訂總人數</div>
-        <div class="big-number" id="people-count">--</div>
-    </div>
-    <div class="glass">
-        <div class="title">預訂總份數</div>
-        <div class="big-number" id="total-qty">--</div>
-    </div>
-    <div class="glass">
-        <div class="title">預訂總金額</div>
-        <div class="big-number" id="total-price">--</div>
-    </div>
-    <div class="glass">
-        <div class="title">預訂單位排名</div>
-        <div id="ranking">讀取中...</div>
-    </div>
+    <div class="glass">
+        <div class="title">預訂總人數</div>
+        <div class="big-number" id="people-count">--</div>
+    </div>
+    <div class="glass">
+        <div class="title">預訂總份數</div>
+        <div class="big-number" id="total-qty">--</div>
+    </div>
+    <div class="glass">
+        <div class="title">預訂總金額</div>
+        <div class="big-number" id="total-price">--</div>
+    </div>
+    <div class="glass">
+        <div class="title">預訂單位排名</div>
+        <div id="ranking">讀取中...</div>
+    </div>
 
-    <!-- 新增商品統計方塊 -->
-    <div class="glass">
-        <div class="title">炒泡麵總數</div>
-        <div class="big-number" id="noodle-count">--</div>
-    </div>
-    <div class="glass">
-        <div class="title">紅茶總數</div>
-        <div class="big-number" id="tea-count">--</div>
-    </div>
-    <div class="glass">
-        <div class="title">套餐總數</div>
-        <div class="big-number" id="set-count">--</div>
-    </div>
+        <div class="glass">
+        <div class="title">炒泡麵總數</div>
+        <div class="big-number" id="noodle-count">--</div>
+    </div>
+    <div class="glass">
+        <div class="title">紅茶總數</div>
+        <div class="big-number" id="tea-count">--</div>
+    </div>
+    <div class="glass">
+        <div class="title">套餐總數</div>
+        <div class="big-number" id="set-count">--</div>
+    </div>
 </div>
 
 <div class="floating-btn" onclick="window.location.href='detail.html'">
-    查看詳細名單 ➜
+    查看詳細名單 ➜
 </div>
 
 <script>
@@ -74,80 +73,92 @@ const url = 'https://docs.google.com/spreadsheets/d/1lmsxOD90L1oNa7XMoM1c5jzwZ05
 let previousData = null;
 
 function fetchData() {
-    fetch(url)
-    .then(response => response.json())
-    .then(data => {
-        const rows = data.預購;
+    fetch(url)
+    .then(response => response.text()) // ⚠️ 修正 1: 以純文字讀取 JSONP
+    .then(txt => {
+        // ⚠️ 修正 2: 提取 JSONP 內部的純 JSON 字串
+        const jsonStart = txt.indexOf("{");
+        const jsonEnd = txt.lastIndexOf("}") + 1;
+        const jsonText = txt.substring(jsonStart, jsonEnd);
+        
+        if (!jsonText) throw new Error("無法解析 Google Sheets 資料");
 
-        const newDataStr = JSON.stringify(rows);
-        if(previousData === newDataStr) return; // 沒變動就不更新
-        previousData = newDataStr;
+        const dataObject = JSON.parse(jsonText);
+        
+        // 沿用原本的資料結構存取方式 (data.預購)
+        const rows = dataObject.預購;
+        if (!rows) throw new Error("資料結構錯誤，找不到 '預購' 欄位。");
 
-        let peopleSet = new Set();
-        let totalQty = 0;
-        let totalPrice = 0;
-        let locationCount = {};
-        let noodleCount = 0;
-        let teaCount = 0;
-        let setCount = 0;
 
-        rows.forEach(r => {
-            const location = r["運送位置"] || "";
-            const name = r["姓名"] || "";
-            const item = r["餐點"] || "";
-            const qty = Number(r["份數"] || 0);
-            const price = Number(r["金額"] || 0);
+        const newDataStr = JSON.stringify(rows);
+        if(previousData === newDataStr) return; // 沒變動就不更新
+        previousData = newDataStr;
 
-            if(name) peopleSet.add(name);
-            totalQty += qty;
-            totalPrice += price;
+        let peopleSet = new Set();
+        let totalQty = 0;
+        let totalPrice = 0;
+        let locationCount = {};
+        let noodleCount = 0;
+        let teaCount = 0;
+        let setCount = 0;
 
-            if(location) {
-                if(!locationCount[location]) locationCount[location] = 0;
-                locationCount[location] += qty;
-            }
+        rows.forEach(r => {
+            const location = r["運送位置"] || "";
+            const name = r["姓名"] || "";
+            const item = r["餐點"] || "";
+            const qty = Number(r["份數"] || 0);
+            const price = Number(r["金額"] || 0);
 
-            // 商品統計
-            if(item.includes("炒泡麵")) noodleCount += qty;
-            else if(item.includes("紅茶")) teaCount += qty;
-            else if(item.includes("套餐")) setCount += qty;
-        });
+            if(name) peopleSet.add(name);
+            totalQty += qty;
+            totalPrice += price;
 
-        const cards = [
-            document.getElementById("people-count"),
-            document.getElementById("total-qty"),
-            document.getElementById("total-price"),
-            document.getElementById("ranking"),
-            document.getElementById("noodle-count"),
-            document.getElementById("tea-count"),
-            document.getElementById("set-count")
-        ];
+            if(location) {
+                if(!locationCount[location]) locationCount[location] = 0;
+                locationCount[location] += qty;
+            }
 
-        document.getElementById("people-count").textContent = peopleSet.size;
-        document.getElementById("total-qty").textContent = totalQty;
-        document.getElementById("total-price").textContent = totalPrice;
+            // 商品統計
+            if(item.includes("炒泡麵")) noodleCount += qty;
+            else if(item.includes("紅茶")) teaCount += qty;
+            else if(item.includes("套餐")) setCount += qty;
+        });
 
-        let sorted = Object.entries(locationCount).sort((a,b)=>b[1]-a[1]);
-        let html = sorted.map((x,i)=>`${i+1}. ${x[0]}（${x[1]}份）`).join("<br>");
-        document.getElementById("ranking").innerHTML = html;
+        const cards = [
+            document.getElementById("people-count"),
+            document.getElementById("total-qty"),
+            document.getElementById("total-price"),
+            document.getElementById("ranking"),
+            document.getElementById("noodle-count"),
+            document.getElementById("tea-count"),
+            document.getElementById("set-count")
+        ];
 
-        document.getElementById("noodle-count").textContent = noodleCount;
-        document.getElementById("tea-count").textContent = teaCount;
-        document.getElementById("set-count").textContent = setCount;
+        document.getElementById("people-count").textContent = peopleSet.size;
+        document.getElementById("total-qty").textContent = totalQty;
+        document.getElementById("total-price").textContent = totalPrice;
 
-        document.getElementById("update-time").textContent = "最後更新：" + new Date().toLocaleString();
+        let sorted = Object.entries(locationCount).sort((a,b)=>b[1]-a[1]);
+        let html = sorted.map((x,i)=>`${i+1}. ${x[0]}（${x[1]}份）`).join("<br>");
+        document.getElementById("ranking").innerHTML = html;
 
-        // 只有資料有變動時才閃爍
-        cards.forEach(card => {
-            card.classList.remove("flash");
-            void card.offsetWidth;
-            card.classList.add("flash");
-        });
-    })
-    .catch(err => {
-        document.getElementById("ranking").textContent = "資料讀取失敗";
-        console.error(err);
-    });
+        document.getElementById("noodle-count").textContent = noodleCount;
+        document.getElementById("tea-count").textContent = teaCount;
+        document.getElementById("set-count").textContent = setCount;
+
+        document.getElementById("update-time").textContent = "最後更新：" + new Date().toLocaleString();
+
+        // 只有資料有變動時才閃爍
+        cards.forEach(card => {
+            card.classList.remove("flash");
+            void card.offsetWidth;
+            card.classList.add("flash");
+        });
+    })
+    .catch(err => {
+        document.getElementById("ranking").textContent = "資料讀取失敗";
+        console.error("資料讀取失敗:", err);
+    });
 }
 
 document.getElementById("refresh").onclick = fetchData;
