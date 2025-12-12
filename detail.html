@@ -98,7 +98,8 @@ tr:hover {
 
 <script>
 // Google Sheet JSON API
-const apiURL = "https://docs.google.com/spreadsheets/d/1lmsxOD90L1oNa7XMoM1c5jzwZ05mpxUfiCBIa_DBpkA/gviz/tq?gid=0&tqx=out:json";
+const apiURL =
+  "https://docs.google.com/spreadsheets/d/1lmsxOD90L1oNa7XMoM1c5jzwZ05mpxUfiCBIa_DBpkA/gviz/tq?gid=0&tqx=out:json";
 
 let tableData = [];
 let sortState = { col: null, asc: true };
@@ -108,25 +109,31 @@ function fetchDetailData() {
     fetch(apiURL)
         .then(res => res.text())
         .then(txt => {
-            const jsonText = txt.substring(txt.indexOf("{"), txt.lastIndexOf("}")+1);
+            const jsonText = txt.substring(txt.indexOf("{"), txt.lastIndexOf("}") + 1);
             const json = JSON.parse(jsonText);
             const rows = json.table.rows;
 
-            tableData = rows.map(r => [
-                r.c[0]?.v || "",   // 運送位置
-                r.c[1]?.v || "",   // 姓名
-                r.c[2]?.v || "",   // 餐點
-                r.c[3]?.v || "",   // 份數
-                r.c[4]?.v || "",   // 金額
-                r.c[5]?.v || "",   // 收款
-                r.c[6]?.v || ""    // 備註
-            ]);
+            tableData = rows
+                .map(r => {
+                    if (!r.c) return null;
+                    return [
+                        r.c[0]?.v ?? "", // 運送位置（文字 OK）
+                        r.c[1]?.v ?? "", // 姓名
+                        r.c[2]?.v ?? "", // 餐點
+                        r.c[3]?.v ?? "", // 份數
+                        r.c[4]?.v ?? "", // 金額
+                        r.c[5]?.v ?? "", // 收款
+                        r.c[6]?.v ?? ""  // 備註
+                    ];
+                })
+                .filter(row => row && row.some(col => col !== "")); // 過濾空白列
 
             renderTable(tableData);
         })
         .catch(err => {
             console.error("讀取 Google Sheets 失敗:", err);
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="7">讀取失敗</td></tr>`;
+            document.getElementById("table-body").innerHTML =
+                `<tr><td colspan="7">讀取失敗</td></tr>`;
         });
 }
 
@@ -141,8 +148,8 @@ function renderTable(data) {
     document.getElementById("table-body").innerHTML = html;
 }
 
-// --- 搜尋功能 ---
-document.getElementById("search-box").addEventListener("input", function() {
+// --- 搜尋 ---
+document.getElementById("search-box").addEventListener("input", function () {
     const keyword = this.value.toLowerCase();
     const filtered = tableData.filter(row =>
         row.some(cell => String(cell).toLowerCase().includes(keyword))
@@ -162,16 +169,21 @@ document.querySelectorAll("th").forEach(th => {
             sortState.asc = true;
         }
 
-        tableData.sort((a,b) => {
-            let x = a[col], y = b[col];
+        tableData.sort((a, b) => {
+            let x = a[col];
+            let y = b[col];
 
-            // 數字欄位要轉成數字
-            if (col == 3 || col == 4) {
-                x = Number(x); 
+            const isNumber = !isNaN(Number(x)) && !isNaN(Number(y));
+
+            if (isNumber) {
+                x = Number(x);
                 y = Number(y);
+            } else {
+                x = String(x);
+                y = String(y);
             }
 
-            return sortState.asc ? x > y ? 1 : -1 : x < y ? 1 : -1;
+            return sortState.asc ? (x > y ? 1 : -1) : (x < y ? 1 : -1);
         });
 
         renderTable(tableData);
