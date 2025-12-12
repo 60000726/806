@@ -13,7 +13,6 @@ body { font-family: Arial; background:#0d0d0d; color:white; padding:25px; }
 #update-bar { display:flex; align-items:center; gap:10px; margin-bottom:20px; font-size:15px; opacity:0.9; }
 #refresh { cursor:pointer; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); backdrop-filter:blur(8px); color:white; }
 .floating-btn { position:fixed; right:25px; bottom:25px; background:rgba(255,255,255,0.25); backdrop-filter:blur(10px); border-radius:22px; padding:20px 32px; font-size:20px; cursor:pointer; border:1px solid rgba(255,255,255,0.4); box-shadow:0 0 12px rgba(255,255,255,0.25); }
-
 /* 卡片閃爍動畫 */
 @keyframes flash {
     0% { background-color: rgba(255,255,255,0.3); }
@@ -56,73 +55,72 @@ body { font-family: Arial; background:#0d0d0d; color:white; padding:25px; }
 </div>
 
 <script>
-const sheetId = "2PACX-1vR0wArufzFl6rTygoQXSOPRUoXGvWuGi97cX0PflPGSTQ65LwHRpybwSm34vvStp9aInjeRP-Bd5fdx";
-const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
-
+const apiURL = "https://docs.google.com/spreadsheets/d/1lmsxOD90L1oNa7XMoM1c5jzwZ05mpxUfiCBIa_DBpkA/gviz/tq?gid=0&tqx=out:json";
 let previousData = null;
 
-function fetchData(){
-    fetch(url)
-    .then(r => r.text())
-    .then(txt => {
-        const json = JSON.parse(txt.substr(47).slice(0, -2));
-        const rows = json.table.rows;
+// 抓資料並處理
+function fetchData() {
+    fetch(apiURL)
+        .then(res => res.text())
+        .then(txt => {
+            // Google 額外包了一些 JS code 需剝掉
+            const jsonText = txt.substring(txt.indexOf("{"), txt.lastIndexOf("}")+1);
+            const json = JSON.parse(jsonText);
+            const rows = json.table.rows;
 
-        // 序列化比較
-        const newDataStr = JSON.stringify(rows);
-        if(previousData === newDataStr) return;
-        previousData = newDataStr;
+            const newDataStr = JSON.stringify(rows);
+            if (previousData === newDataStr) return; // 無變動不更新
+            previousData = newDataStr;
 
-        let peopleSet = new Set();
-        let totalQty=0, totalPrice=0, locationCount={};
+            let peopleSet = new Set();
+            let totalQty = 0;
+            let totalPrice = 0;
+            let locationCount = {};
 
-        rows.forEach(r => {
-            const location = r.c[0]?.v || "";
-            const name     = r.c[1]?.v || "";
-            const item     = r.c[2]?.v || "";
-            const qty      = Number(r.c[3]?.v || 0);
-            const price    = Number(r.c[4]?.v || 0);
+            rows.forEach(r => {
+                const location = r.c[0]?.v || "";
+                const name     = r.c[1]?.v || "";
+                const qty      = Number(r.c[3]?.v || 0);
+                const price    = Number(r.c[4]?.v || 0);
 
-            if(name) peopleSet.add(name);
-            totalQty += qty;
-            totalPrice += price;
+                if (name) peopleSet.add(name);
+                totalQty += qty;
+                totalPrice += price;
 
-            if(location){
-                if(!locationCount[location]) locationCount[location]=0;
-                locationCount[location]+=qty;
-            }
-        });
+                if (location) {
+                    if (!locationCount[location]) locationCount[location] = 0;
+                    locationCount[location] += qty;
+                }
+            });
 
-        document.getElementById("people-count").textContent = peopleSet.size;
-        document.getElementById("total-qty").textContent = totalQty;
-        document.getElementById("total-price").textContent = totalPrice;
+            document.getElementById("people-count").textContent = peopleSet.size;
+            document.getElementById("total-qty").textContent = totalQty;
+            document.getElementById("total-price").textContent = totalPrice;
 
-        let sorted = Object.entries(locationCount).sort((a,b)=>b[1]-a[1]);
-        let html = sorted.map((x,i)=>`${i+1}. ${x[0]}（${x[1]}份）`).join("<br>");
-        document.getElementById("ranking").innerHTML = html;
+            let sorted = Object.entries(locationCount).sort((a,b)=>b[1]-a[1]);
+            let html = sorted.map((x,i)=>`${i+1}. ${x[0]}（${x[1]}份）`).join("<br>");
+            document.getElementById("ranking").innerHTML = html;
 
-        document.getElementById("update-time").textContent =
-            "最後更新：" + new Date().toLocaleString();
+            document.getElementById("update-time").textContent = "最後更新：" + new Date().toLocaleString();
 
-        const cards = [
-            document.getElementById("people-count"),
-            document.getElementById("total-qty"),
-            document.getElementById("total-price"),
-            document.getElementById("ranking"),
-        ];
-
-        cards.forEach(card=>{
-            card.classList.remove("flash");
-            void card.offsetWidth;
-            card.classList.add("flash");
-        });
-    })
-    .catch(err => console.error(err));
+            const cards = [
+                document.getElementById("people-count"),
+                document.getElementById("total-qty"),
+                document.getElementById("total-price"),
+                document.getElementById("ranking"),
+            ];
+            cards.forEach(card => {
+                card.classList.remove("flash");
+                void card.offsetWidth;
+                card.classList.add("flash");
+            });
+        })
+        .catch(err => console.error("抓取資料錯誤:", err));
 }
 
 document.getElementById("refresh").onclick = fetchData;
 fetchData();
-setInterval(fetchData, 10000);
+setInterval(fetchData, 10000); // 每 10 秒自動刷新
 </script>
 
 </body>
